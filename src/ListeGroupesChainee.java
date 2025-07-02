@@ -70,9 +70,15 @@ public class ListeGroupesChainee<T extends IGroupe> implements IListeGroupes<T> 
      */
     @Override
     public int supprimerGroupe(int idGroupe) {
-        // vérifier si le premier élément de la liste est le groupe à supprimer
+        MaillonListe<T> liste = this.trouverListe(idGroupe);
+        if (liste == null) {
+            return 0; // le groupe n'existe pas, rien à supprimer
+        }
+
+        int tailleGroupe = this.taille(idGroupe);
+
+        // on vérifie si le premier élément de la liste est le groupe à supprimer
         if (this.elements != null && this.elements.getInfo().getInfo().getId() == idGroupe) {
-            int tailleGroupe = this.taille(idGroupe);
             this.elements = this.elements.getSuivant(); // supprimer le premier
             this.nbrElements -= tailleGroupe;
             return tailleGroupe;
@@ -80,21 +86,10 @@ public class ListeGroupesChainee<T extends IGroupe> implements IListeGroupes<T> 
 
         MaillonListe<T> listePrecedent = this.trouverListePrecedent(idGroupe);
 
-        if (listePrecedent == null) {
-            return 0; // le groupe n'existe pas, rien à supprimer
+        if (listePrecedent != null) {
+            listePrecedent.setSuivant(listePrecedent.getSuivant().getSuivant());
+            this.nbrElements -= tailleGroupe; // mettre à jour le nombre total d'éléments
         }
-
-        int tailleGroupe = this.taille(idGroupe);
-
-        if (listePrecedent.getSuivant().getSuivant() == null) {
-            listePrecedent.setSuivant(null); // si c'est le dernier groupe, on le supprime
-            return tailleGroupe;
-        }
-
-        // supprimer le groupe en le reliant le précédent au suivant
-        listePrecedent.setSuivant(listePrecedent.getSuivant().getSuivant());
-
-        this.nbrElements -= tailleGroupe; // mettre à jour le nombre total d'éléments
 
         return tailleGroupe;
     }
@@ -113,18 +108,22 @@ public class ListeGroupesChainee<T extends IGroupe> implements IListeGroupes<T> 
             throw new NullPointerException("L'élément ne peut pas être null.");
         }
 
-        MaillonListe<T> liste = this.trouverListe(element.getId());
-
-        if (liste == null) return false;
-
         if (!elementExiste(element)) {
-            return false; // l'élément n'existe pas dans le groupe
+            return false; // l'élément n'existe pas
         }
 
+        MaillonListe<T> liste = this.trouverListe(element.getId());
+        boolean estSeulElement = (liste.getInfo().getSuivant() == null);
+
+        if (estSeulElement) {
+            supprimerGroupe(element.getId());
+            return true;
+        }
+
+        // si ce n'est pas le seul élément, supprimer seulement l'élément
         MaillonGroupe<T> precedent = this.trouverElementPrecedentDansGroupe(liste.getInfo(), element);
 
         if (precedent == null) {
-            // si l’élément est le premier du groupe
             liste.setInfo(liste.getInfo().getSuivant());
         } else {
             precedent.setSuivant(precedent.getSuivant().getSuivant());
@@ -238,20 +237,6 @@ public class ListeGroupesChainee<T extends IGroupe> implements IListeGroupes<T> 
             groupe = groupe.getSuivant();
         }
         return taille;
-    }
-
-    /**
-     * Permet d'obtenir le nombre de groupes dans la liste de groupes.
-     *
-     * @return le nombre de groupes dans la liste de groupes.
-     */
-    @Override
-    public int nbrGroupes() {
-        if (this.elements == null) {
-            return 0; // aucune liste de groupes
-        }
-
-        return nbrGroupes(this.elements.getInfo()) + 1; // compte le groupe actuel et les suivants
     }
 
     /**
@@ -450,17 +435,26 @@ public class ListeGroupesChainee<T extends IGroupe> implements IListeGroupes<T> 
     }
 
     /**
-     * Compte le nombre de groupes dans la liste de groupes.
+     * Permet d'obtenir le nombre de groupes dans la liste de groupes.
      *
-     * @param groupe le groupe à partir duquel commencer le comptage.
      * @return le nombre de groupes dans la liste de groupes.
      */
-    private int nbrGroupes(MaillonGroupe<T> groupe) {
+    @Override
+    public int nbrGroupes() {
+        return nbrGroupesRecursif(elements);
+    }
 
-        if (groupe == null) {
-            return 0; // aucun groupe
+    /**
+     * Méthode récursive pour compter le nombre de groupes dans la liste de groupes.
+     *
+     * @param courant le maillon courant de la liste de groupes.
+     * @return le nombre de groupes à partir du maillon courant.
+     */
+    private int nbrGroupesRecursif(MaillonListe<T> courant) {
+        if (courant == null) {
+            return 0;
         }
 
-        return nbrGroupes(groupe.getSuivant()) + 1;
+        return 1 + nbrGroupesRecursif(courant.getSuivant());
     }
 }
