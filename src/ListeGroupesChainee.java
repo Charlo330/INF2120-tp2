@@ -358,15 +358,21 @@ public class ListeGroupesChainee<T extends IGroupe> implements IListeGroupes<T> 
      * @return le maillon du groupe précédent, ou null si aucun groupe précédent n'est trouvé.
      */
     private MaillonListe<T> trouverListePrecedent(int id) {
-        MaillonListe<T> maillonListe = this.elements;
-
-        while (maillonListe != null) {
-            if (maillonListe.getInfo().getInfo().getId() == id) {
-                return maillonListe; // retourne le groupe précédent
+        MaillonListe<T> precedent = null;
+        MaillonListe<T> courant = elements;
+        while (courant != null) {
+            if (courant.getInfo() == null || courant.getInfo().getInfo() == null) {
+                courant = courant.getSuivant();
+                continue;
             }
-            maillonListe = maillonListe.getSuivant();
+            int courantId = courant.getInfo().getInfo().getId();
+            if (courantId == id) {
+                return precedent; // trouvé
+            }
+            precedent = courant;
+            courant = courant.getSuivant();
         }
-        return null; // aucun groupe trouvé
+        return null; // non trouvé
     }
 
     /**
@@ -377,15 +383,17 @@ public class ListeGroupesChainee<T extends IGroupe> implements IListeGroupes<T> 
      * @return le maillon du groupe contenant l'élément, ou null si l'élément n'existe pas.
      */
     private MaillonGroupe<T> trouverElementDansGroupe(MaillonGroupe<T> groupe, T element) {
-        MaillonGroupe<T> courant = trouverElementPrecedentDansGroupe(groupe, element);
+        MaillonGroupe<T> courant = groupe;
 
-        if (courant == null) {
-            return null; // l'élément n'existe pas dans le groupe
+        while (courant != null) {
+            if (courant.getInfo().equals(element)) {
+                return courant; // trouvé
+            }
+            courant = courant.getSuivant();
         }
 
-        return courant.getSuivant(); // retourne le maillon contenant l'élément
+        return null; // non trouvé
     }
-
     /**
      * Trouve l'élément précédent dans un groupe donné.
      *
@@ -453,6 +461,6 @@ public class ListeGroupesChainee<T extends IGroupe> implements IListeGroupes<T> 
             return 0; // aucun groupe
         }
 
-        return nbrGroupes(groupe.getSuivant())+ 1;
+        return nbrGroupes(groupe.getSuivant()) + 1;
     }
 }
